@@ -1,0 +1,5 @@
+modal
+pydantic
+fastapi
+chatterbox-tts
+torchaudio

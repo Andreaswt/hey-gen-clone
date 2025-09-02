@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  credits Int @default(100)
+  photoToVideoGenerations PhotoToVideoGeneration[]
+  videoTranslationGenerations VideoTranslationGeneration[]
+  changeVideoAudioGenerations ChangeVideoAudioGeneration[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model PhotoToVideoGeneration {
+  id String @id @default(cuid())
+  name String
+  photoS3Key String?
+  script String?
+  drivingAudioS3Key String?
+  voiceS3Key String?
+  expressiveness Float?
+  enhancement Boolean @default(false)
+  experimentalModel Boolean @default(false)
+  resolution String? @default("512")
+  videoS3Key String?
+  status String @default("queued")
+  sieveJobId String?
+  createdAt DateTime @default(now())
+  userId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VideoTranslationGeneration {
+  id String @id @default(cuid())
+  name String
+  sourceVideoS3Key String?
+  targetLanguage String?
+  videoS3Key String?
+  status String @default("queued")
+  sieveJobId String?
+  createdAt DateTime @default(now())
+  userId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChangeVideoAudioGeneration {
+  id String @id @default(cuid())
+  name String
+  sourceVideoS3Key String?
+  newAudioS3Key String?
+  videoS3Key String?
+  status String @default("queued")
+  sieveJobId String?
+  createdAt DateTime @default(now())
+  userId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}

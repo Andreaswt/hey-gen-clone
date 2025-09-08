@@ -75,7 +75,7 @@ modal deploy backend/photo-to-video/ptv.py
 ```
 
 ```bash
-modal deploy backend/sieve-to-s3/sieve_to_s3.py
+modal deploy backend/file-to-s3/file_to_s3.py
 ```
 
 ```bash

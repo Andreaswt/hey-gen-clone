@@ -2,6 +2,12 @@ import { db } from "~/server/db";
 import { inngest } from "./client";
 import { env } from "~/env";
 import { getPresignedUrl } from "~/lib/s3";
+import { fal } from "@fal-ai/client";
+
+// Configure FAL client
+fal.config({
+  credentials: env.FAL_KEY,
+});
 
 export const photoToVideo = inngest.createFunction(
   {
@@ -84,39 +90,31 @@ export const photoToVideo = inngest.createFunction(
           },
         );
 
-        const sieveJobResponse = await step.fetch(
-          "https://mango.sievedata.com/v2/push",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": env.SIEVE_API_KEY,
+        if (!photoUrl || !audioUrl)
+          throw new Error(
+            "Missing photo or audio URL: " + photoUrl + ", " + audioUrl,
+          );
+
+        const { request_id } = await step.run("submit-fal-avatar", async () => {
+          return await fal.queue.submit("fal-ai/ai-avatar", {
+            input: {
+              image_url: photoUrl,
+              audio_url: audioUrl,
+              prompt: photoToVideo.script || "A person talking naturally",
+              num_frames: 145,
+              resolution: "720p",
+              seed: 42,
+              acceleration: "regular",
             },
-            body: JSON.stringify({
-              function: "sieve/portrait-avatar",
-              inputs: {
-                source_image: { url: photoUrl },
-                driving_audio: { url: audioUrl },
-                backend: "lemonslice-v2.5",
-                enhancement: photoToVideo.enhancement ? "codeformer" : "none",
-              },
-              webhooks: [
-                {
-                  type: "job.complete",
-                  url: `https://${process.env.VERCEL_URL}/api/sieve`,
-                },
-              ],
-            }),
-          },
-        );
+            webhookUrl: `https://${process.env.VERCEL_URL}/api/fal`,
+          });
+        });
 
-        const sieveJob = (await sieveJobResponse.json()) as { id: string };
-
-        await step.run("update-db-with-sieve-job-id", async () => {
+        await step.run("update-db-with-fal-request-id", async () => {
           return await db.photoToVideoGeneration.update({
             where: { id: photoToVideo.id },
             data: {
-              sieveJobId: sieveJob.id,
+              falJobId: request_id,
             },
           });
         });
@@ -232,45 +230,29 @@ export const translateVideo = inngest.createFunction(
         return videoUrl;
       });
 
-      const sieveJobResponse = await step.fetch(
-        "https://mango.sievedata.com/v2/push",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": env.SIEVE_API_KEY,
+      if (!videoUrl) {
+        throw new Error("Missing video URL: " + videoUrl);
+      }
+
+      const { request_id } = await step.run("submit-fal-dubbing", async () => {
+        return await fal.queue.submit("fal-ai/dubbing", {
+          input: {
+            video_url: videoUrl,
+            target_language: videoTranslation.targetLanguage as
+              | "hindi"
+              | "turkish"
+              | "english",
+            do_lipsync: true,
           },
-          body: JSON.stringify({
-            function: "sieve/dubbing",
-            inputs: {
-              source_file: { url: videoUrl },
-              target_language: videoTranslation.targetLanguage,
-              translation_engine: "sieve-default-translator",
-              voice_engine: "sieve-default-cloning",
-              transcription_engine: "sieve-transcribe",
-              output_mode: "voice-dubbing",
-              preserve_background_audio: true,
-              enable_lipsyncing: false,
-              lipsync_backend: "sync-2.0",
-              lipsync_enhance: "default",
-            },
-            webhooks: [
-              {
-                type: "job.complete",
-                url: `https://${process.env.VERCEL_URL}/api/sieve`,
-              },
-            ],
-          }),
-        },
-      );
+          webhookUrl: `https://${process.env.VERCEL_URL}/api/fal`,
+        });
+      });
 
-      const sieveJob = (await sieveJobResponse.json()) as { id: string };
-
-      await step.run("update-db-with-sieve-job-id", async () => {
+      await step.run("update-db-with-fal-request-id", async () => {
         return await db.videoTranslationGeneration.update({
           where: { id: videoTranslation.id },
           data: {
-            sieveJobId: sieveJob.id,
+            falJobId: request_id,
           },
         });
       });
@@ -357,39 +339,28 @@ export const changeVideoAudio = inngest.createFunction(
         },
       );
 
-      const sieveJobResponse = await step.fetch(
-        "https://mango.sievedata.com/v2/push",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": env.SIEVE_API_KEY,
+      if (!videoUrl || !audioUrl)
+        throw new Error(
+          "Missing video or audio URL: " + videoUrl + ", " + audioUrl,
+        );
+
+      const { request_id } = await step.run("submit-fal-lipsync", async () => {
+        return await fal.queue.submit("fal-ai/sync-lipsync", {
+          input: {
+            video_url: videoUrl,
+            audio_url: audioUrl,
+            model: "lipsync-1.9.0-beta",
+            sync_mode: "cut_off",
           },
-          body: JSON.stringify({
-            function: "sieve/lipsync",
-            inputs: {
-              file: { url: videoUrl },
-              audio: { url: audioUrl },
-              backend: "sievesync-1.1",
-              enhance: "default",
-            },
-            webhooks: [
-              {
-                type: "job.complete",
-                url: `https://${process.env.VERCEL_URL}/api/sieve`,
-              },
-            ],
-          }),
-        },
-      );
+          webhookUrl: `https://${process.env.VERCEL_URL}/api/fal`,
+        });
+      });
 
-      const sieveJob = (await sieveJobResponse.json()) as { id: string };
-
-      await step.run("update-db-with-sieve-job-id", async () => {
+      await step.run("update-db-with-fal-request-id", async () => {
         return await db.changeVideoAudioGeneration.update({
           where: { id: generation.id },
           data: {
-            sieveJobId: sieveJob.id,
+            falJobId: request_id,
           },
         });
       });

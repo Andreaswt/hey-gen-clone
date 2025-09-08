@@ -5,22 +5,22 @@ import uuid
 import modal
 from pydantic import BaseModel
 
-app = modal.App("sieve-file-to-s3")
+app = modal.App("file-to-s3")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("curl")
-    .pip_install_from_requirements("sieve-to-s3/requirements.txt")
+    .pip_install_from_requirements("file-to-s3/requirements.txt")
 )
 
 s3_secret = modal.Secret.from_name("hey-gen-secret")
 
 
-class SieveImportRequest(BaseModel):
+class FileImportRequest(BaseModel):
     video_url: str
 
 
-class SieveImportResponse(BaseModel):
+class FileImportResponse(BaseModel):
     s3_key: str
 
 
@@ -32,12 +32,12 @@ class SieveImportResponse(BaseModel):
     timeout=600,
     secrets=[s3_secret]
 )
-class SieveImporter:
+class FileImporter:
     @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
-    def import_video(self, request: SieveImportRequest) -> SieveImportResponse:
+    def import_video(self, request: FileImportRequest) -> FileImportResponse:
 
         video_uuid = str(uuid.uuid4())
-        s3_key = f"sieve/{video_uuid}.mp4"
+        s3_key = f"file/{video_uuid}.mp4"
         s3_path = f"/s3-mount/{s3_key}"
         os.makedirs(os.path.dirname(s3_path), exist_ok=True)
 
@@ -58,7 +58,7 @@ class SieveImporter:
                 os.remove(s3_path)
             raise
 
-        return SieveImportResponse(s3_key=s3_key)
+        return FileImportResponse(s3_key=s3_key)
 
 
 @app.local_entrypoint()
@@ -67,10 +67,10 @@ def main():
 
     test_url = "https://public-hey-gen-clone.s3.us-east-1.amazonaws.com/samples/voices/bezos.wav"
 
-    server = SieveImporter()
+    server = FileImporter()
     endpoint_url = server.import_video.get_web_url()
 
-    request = SieveImportRequest(
+    request = FileImportRequest(
         video_url=test_url
     )
 
@@ -84,6 +84,6 @@ def main():
     response = requests.post(endpoint_url, json=payload, headers=headers)
     response.raise_for_status()
 
-    result = SieveImportResponse(**response.json())
+    result = FileImportResponse(**response.json())
 
     print(result.s3_key)

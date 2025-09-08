@@ -19,10 +19,10 @@ export const env = createEnv({
     S3_BUCKET_NAME: z.string(),
     TEXT_TO_SPEECH_ENDPOINT: z.string().url(),
     PHOTO_TO_VIDEO_ENDPOINT: z.string().url(),
-    SIEVE_FILE_TO_S3_ENDPOINT: z.string().url(),
-    SIEVE_API_KEY: z.string(),
+    FILE_TO_S3_ENDPOINT: z.string().url(),
     POLAR_ACCESS_TOKEN: z.string(),
     POLAR_WEBHOOK_SECRET: z.string(),
+    FAL_KEY: z.string(),
   },
 
   /**
@@ -52,8 +52,7 @@ export const env = createEnv({
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
     TEXT_TO_SPEECH_ENDPOINT: process.env.TEXT_TO_SPEECH_ENDPOINT,
     PHOTO_TO_VIDEO_ENDPOINT: process.env.PHOTO_TO_VIDEO_ENDPOINT,
-    SIEVE_FILE_TO_S3_ENDPOINT: process.env.SIEVE_FILE_TO_S3_ENDPOINT,
-    SIEVE_API_KEY: process.env.SIEVE_API_KEY,
+    FILE_TO_S3_ENDPOINT: process.env.FILE_TO_S3_ENDPOINT,
     POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN,
     NEXT_PUBLIC_SMALL_CREDIT_PACK_ID:
       process.env.NEXT_PUBLIC_SMALL_CREDIT_PACK_ID,
@@ -62,6 +61,7 @@ export const env = createEnv({
     NEXT_PUBLIC_LARGE_CREDIT_PACK_ID:
       process.env.NEXT_PUBLIC_LARGE_CREDIT_PACK_ID,
     POLAR_WEBHOOK_SECRET: process.env.POLAR_WEBHOOK_SECRET,
+    FAL_KEY: process.env.FAL_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

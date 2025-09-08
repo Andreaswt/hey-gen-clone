@@ -42,7 +42,7 @@ model PhotoToVideoGeneration {
   resolution String? @default("512")
   videoS3Key String?
   status String @default("queued")
-  sieveJobId String?
+  falJobId String?
   createdAt DateTime @default(now())
   userId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -55,7 +55,7 @@ model VideoTranslationGeneration {
   targetLanguage String?
   videoS3Key String?
   status String @default("queued")
-  sieveJobId String?
+  falJobId String?
   createdAt DateTime @default(now())
   userId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -68,7 +68,7 @@ model ChangeVideoAudioGeneration {
   newAudioS3Key String?
   videoS3Key String?
   status String @default("queued")
-  sieveJobId String?
+  falJobId String?
   createdAt DateTime @default(now())
   userId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
